@@ -118,10 +118,10 @@ def create_balanced_sample(df, target_column='class', num_samples=1000):
     return df_n
 
 # Usage
-target = 'class'
-df = df.drop(columns=["e_magic", "e_crlc"])
-y = df[target]
-X = df.drop(columns=[target])
+#target = 'class'
+#df = df.drop(columns=["e_magic", "e_crlc"])
+#y = df[target]
+#X = df.drop(columns=[target])
 
 # Create balanced sample
 df_n = create_balanced_sample(df)
