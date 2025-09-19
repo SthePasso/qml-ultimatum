@@ -83,7 +83,8 @@ import pandas as pd
 import os
 
 # Define the dataset path
-dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+# dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
 files = os.listdir(dataset_path)
 csv_files = [f for f in files if f.endswith('.csv')]
 if csv_files:
@@ -118,10 +119,10 @@ def create_balanced_sample(df, target_column='class', num_samples=1000):
     return df_n
 
 # Usage
-#target = 'class'
-#df = df.drop(columns=["e_magic", "e_crlc"])
-#y = df[target]
-#X = df.drop(columns=[target])
+target = 'class'
+df = df.drop(columns=["e_magic", "e_crlc"])
+y = df[target]
+X = df.drop(columns=[target])
 
 # Create balanced sample
 df_n = create_balanced_sample(df)
@@ -141,15 +142,46 @@ class MinimalDataProcessor:
         csv_files = [f for f in os.listdir(self.dataset_path) if f.endswith('.csv')]
         self.df = pd.read_csv(os.path.join(self.dataset_path, csv_files[0]))
         
-        # Drop excluded columns and balance dataset
-        self.df = self.df.drop(columns=self.exclude_cols, errors='ignore')
-        class_0 = self.df[self.df[self.target_col] == 0].sample(n=self.num_samples//2)
-        class_1 = self.df[self.df[self.target_col] == 1].sample(n=self.num_samples//2)
-        self.df = pd.concat([class_0, class_1]).sample(frac=1).reset_index(drop=True)
+        print(f"Original dataset shape: {self.df.shape}")
         
-        # Store all features (excluding target)
+        # Drop excluded columns
+        self.df = self.df.drop(columns=self.exclude_cols, errors='ignore')
+        
+        # CRITICAL FIX: Handle non-numeric columns
+        numeric_columns = self.df.select_dtypes(include=[np.number]).columns.tolist()
+        non_numeric_columns = self.df.select_dtypes(exclude=[np.number]).columns.tolist()
+        
+        print(f"Numeric columns: {len(numeric_columns)}")
+        print(f"Non-numeric columns: {non_numeric_columns}")
+        
+        # Handle non-numeric columns (except target)
+        for col in non_numeric_columns:
+            if col == self.target_col:
+                continue
+                
+            unique_vals = self.df[col].nunique()
+            if unique_vals <= 10:  # Few categories - encode
+                from sklearn.preprocessing import LabelEncoder
+                le = LabelEncoder()
+                self.df[col] = le.fit_transform(self.df[col].astype(str))
+            else:  # Too many categories - drop
+                self.df = self.df.drop(columns=[col])
+        
+        # Ensure target is numeric
+        if self.df[self.target_col].dtype == 'object':
+            from sklearn.preprocessing import LabelEncoder
+            le = LabelEncoder()
+            self.df[self.target_col] = le.fit_transform(self.df[self.target_col].astype(str))
+        
+        # Balance dataset
+        class_0 = self.df[self.df[self.target_col] == 0].sample(n=self.num_samples//2, random_state=42)
+        class_1 = self.df[self.df[self.target_col] == 1].sample(n=self.num_samples//2, random_state=42)
+        self.df = pd.concat([class_0, class_1]).sample(frac=1, random_state=42).reset_index(drop=True)
+        
+        # Store numeric features only
         self.all_features = [col for col in self.df.columns if col != self.target_col]
         
+        print(f"Final dataset shape: {self.df.shape}")
         return self.df
     
     def _get_representative_feature(self, cluster_features, corr_matrix):
@@ -163,8 +195,15 @@ class MinimalDataProcessor:
     def generate_feature_clusters(self, min_clusters=2, max_clusters=10):
         data = self.df.drop(columns=[self.target_col])
         
-        # Remove constant features that cause correlation issues
+        # Ensure only numeric columns
+        data = data.select_dtypes(include=[np.number])
+        
+        # Remove constant and low-variance features
         data = data.loc[:, data.std() > 1e-6]
+        
+        if len(data.columns) < min_clusters:
+            print(f"Not enough features ({len(data.columns)}) for clustering")
+            return self.feature_2to10
         
         correlations = data.corr().abs().fillna(0)
         
