@@ -83,8 +83,8 @@ import pandas as pd
 import os
 
 # Define the dataset path
-# dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
-dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+# dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
 files = os.listdir(dataset_path)
 csv_files = [f for f in files if f.endswith('.csv')]
 if csv_files:
