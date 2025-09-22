@@ -1250,43 +1250,167 @@ class ModelEvaluator:
         plt.tight_layout()
         plt.show()
     
+    # def main_with_resume(self, feature_2to10, df, y, model_type=None):
+    #     """Main function with resume capability"""
+    #     if model_type is None:
+    #         model_type = self.model_type
+            
+    #     print("="*80)
+    #     print(f"{model_type.upper()} TRAINING WITH AUTO-RESUME")
+    #     print(f"📁 CSV: {self.csv_filename}")
+    #     print("="*80)
+        
+    #     all_results = []
+        
+    #     for i in range(len(feature_2to10)):
+    #         n_clusters = i + 2
+    #         X_temp = df[feature_2to10[i]]
+            
+    #         result = self.evaluate_feature_set(X_temp, y, n_clusters, model_type.upper())
+    #         all_results.append(result)
+        
+    #     # Create comprehensive results summary
+    #     print("\n" + "="*120)
+    #     print("COMPREHENSIVE RESULTS SUMMARY")
+    #     print("="*120)
+    #     results_df = pd.DataFrame(all_results)
+    #     if not results_df.empty:
+    #         display_columns = ['n_clusters', 'best_fold_score', 'worst_fold_score',
+    #                           'retrained_score', 'avg_cv_score', 'std_cv_score', 'improvement']
+    #         print(results_df[display_columns].to_string(index=False))
+            
+    #         # Plot results
+    #         self.plot_evaluation_results(results_df, f"{model_type.upper()} (Resume)")
+        
+    #     print(f"\n✅ Training complete! Check {self.csv_filename}")
+    #     print(f"📊 Total results in CSV: {len(pd.read_csv(self.csv_filename)) if os.path.exists(self.csv_filename) else 0}")
+        
+    #     return all_results
     def main_with_resume(self, feature_2to10, df, y, model_type=None):
-        """Main function with resume capability"""
+        """Enhanced main function with intelligent dimension-level resume"""
         if model_type is None:
             model_type = self.model_type
             
         print("="*80)
-        print(f"{model_type.upper()} TRAINING WITH AUTO-RESUME")
+        print(f"{model_type.upper()} TRAINING WITH INTELLIGENT AUTO-RESUME")
         print(f"📁 CSV: {self.csv_filename}")
         print("="*80)
         
-        all_results = []
+        # Find starting dimension by checking completion status
+        print(f"\n🔍 Scanning for incomplete dimensions in {model_type.upper()}...")
+        start_idx = 0
         
         for i in range(len(feature_2to10)):
             n_clusters = i + 2
+            
+            # Check if this dimension is complete (inline logic)
+            is_complete = False
+            if not self.existing_results.empty:
+                try:
+                    model_col = self.existing_results['Model'].fillna('').astype(str)
+                    
+                    # Check regular folds (should have 10 folds)
+                    regular_pattern = f"{model_type.upper()}.*{n_clusters}D$"
+                    regular_models = self.existing_results[
+                        model_col.str.contains(regular_pattern, regex=True, case=False, na=False)
+                    ]
+                    
+                    if not regular_models.empty:
+                        fold_col = pd.to_numeric(regular_models['Fold'], errors='coerce')
+                        unique_folds = fold_col.dropna().unique()
+                        regular_folds_complete = len(unique_folds) >= 10
+                        
+                        # Check if retrained model exists
+                        retrain_pattern = f"{model_type.upper()}.*{n_clusters}D_retrained"
+                        retrain_exists = model_col.str.contains(retrain_pattern, regex=True, case=False, na=False).any()
+                        
+                        is_complete = regular_folds_complete and retrain_exists
+                        
+                        if is_complete:
+                            print(f"  ✅ {model_type.upper()}_{n_clusters}D is COMPLETE ({len(unique_folds)} folds + retrained)")
+                        else:
+                            missing = []
+                            if not regular_folds_complete:
+                                missing.append(f"{10 - len(unique_folds)} folds")
+                            if not retrain_exists:
+                                missing.append("retrained model")
+                            print(f"  ⏳ {model_type.upper()}_{n_clusters}D is INCOMPLETE (missing: {', '.join(missing)})")
+                            
+                except Exception as e:
+                    print(f"❌ Error checking dimension {n_clusters}D: {e}")
+                    is_complete = False
+            else:
+                print(f"  ⏳ {model_type.upper()}_{n_clusters}D is INCOMPLETE (no existing data)")
+            
+            if not is_complete:
+                start_idx = i
+                print(f"📍 Will resume from {n_clusters}D dimension")
+                break
+        else:
+            # All dimensions are complete
+            print(f"✅ All dimensions appear complete!")
+            start_idx = len(feature_2to10)
+        
+        # Handle case where everything is complete
+        if start_idx >= len(feature_2to10):
+            print(f"🎉 All {len(feature_2to10)} dimensions are already complete!")
+            print(f"📊 Loading existing results for summary...")
+            
+            results_df = self._parse_csv_to_summary(self.csv_filename)
+            if results_df is not None:
+                print("\n" + "="*120)
+                print("EXISTING RESULTS SUMMARY")
+                print("="*120)
+                display_columns = ['n_clusters', 'best_fold_score', 'worst_fold_score',
+                                'retrained_score', 'avg_cv_score', 'std_cv_score', 'improvement']
+                print(results_df[display_columns].to_string(index=False))
+                self.plot_evaluation_results(results_df, f"{model_type.upper()} (Complete)")
+            return []
+        
+        print(f"\n🚀 Starting from dimension {start_idx + 2}D (skipped {start_idx} complete dimensions)")
+        
+        all_results = []
+        
+        # Process only incomplete dimensions
+        for i in range(start_idx, len(feature_2to10)):
+            n_clusters = i + 2
             X_temp = df[feature_2to10[i]]
+            
+            print(f"\n{'='*60}")
+            print(f"PROCESSING DIMENSION {n_clusters}D ({i+1}/{len(feature_2to10)})")
+            print(f"{'='*60}")
             
             result = self.evaluate_feature_set(X_temp, y, n_clusters, model_type.upper())
             all_results.append(result)
         
-        # Create comprehensive results summary
-        print("\n" + "="*120)
-        print("COMPREHENSIVE RESULTS SUMMARY")
-        print("="*120)
-        results_df = pd.DataFrame(all_results)
-        if not results_df.empty:
-            display_columns = ['n_clusters', 'best_fold_score', 'worst_fold_score',
-                              'retrained_score', 'avg_cv_score', 'std_cv_score', 'improvement']
-            print(results_df[display_columns].to_string(index=False))
-            
-            # Plot results
-            self.plot_evaluation_results(results_df, f"{model_type.upper()} (Resume)")
+        # Load ALL results for final summary
+        print(f"\n📊 Loading complete results for final summary...")
+        complete_results_df = self._parse_csv_to_summary(self.csv_filename)
         
+        if complete_results_df is not None and not complete_results_df.empty:
+            print("\n" + "="*120)
+            print("FINAL COMPREHENSIVE RESULTS SUMMARY")
+            print("="*120)
+            display_columns = ['n_clusters', 'best_fold_score', 'worst_fold_score',
+                            'retrained_score', 'avg_cv_score', 'std_cv_score', 'improvement']
+            print(complete_results_df[display_columns].to_string(index=False))
+            self.plot_evaluation_results(complete_results_df, f"{model_type.upper()} (Final)")
+        elif all_results:
+            print("\n" + "="*120)
+            print("NEW RESULTS SUMMARY")
+            print("="*120)
+            new_results_df = pd.DataFrame(all_results)
+            display_columns = ['n_clusters', 'best_fold_score', 'worst_fold_score',
+                            'retrained_score', 'avg_cv_score', 'std_cv_score', 'improvement']
+            print(new_results_df[display_columns].to_string(index=False))
+            self.plot_evaluation_results(new_results_df, f"{model_type.upper()} (New Only)")
+        
+        total_records = len(pd.read_csv(self.csv_filename)) if os.path.exists(self.csv_filename) else 0
         print(f"\n✅ Training complete! Check {self.csv_filename}")
-        print(f"📊 Total results in CSV: {len(pd.read_csv(self.csv_filename)) if os.path.exists(self.csv_filename) else 0}")
+        print(f"📊 Total records in CSV: {total_records}")
+        print(f"🆕 New dimensions processed: {len(all_results)}")
         
         return all_results
-
     def _parse_csv_to_summary(self, csv_filename):
         """
         Parse CSV data into the same summary format used by main_with_resume
