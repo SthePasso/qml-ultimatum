@@ -76,6 +76,11 @@ from qiskit.circuit.library import ZZFeatureMap
 from qiskit_machine_learning.kernels import FidelityQuantumKernel
 from qiskit_machine_learning.algorithms import QSVC
 
+
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import adjusted_rand_score
+from qiskit import transpile, QuantumCircuit
+
 np.random.seed(42)
 #algorithm_globals.random_seed = 123
 
