@@ -727,7 +727,7 @@ class ModelEvaluator:
     """
     Enhanced model evaluator that supports:
     - Classical/Quantum SVM (SVC/QSVC)
-    - Classical/Quantum Clustering (CC/QC)
+    - Classical/Quantum Clustering (CC/QC/QCC)
     - Classical/Quantum PCA (CPCA/QPCA/QPCA+RBF)
     """
     
@@ -743,7 +743,7 @@ class ModelEvaluator:
             Custom filename for CSV output. If None, uses default naming based on model_type
         model_type : str
             Type of model: 'svc', 'cc' (clustering), 'cpca' (classical pca), 
-            'qsvc', 'qc' (quantum clustering), 'qpca' (quantum pca)
+            'qsvc', 'qc' (quantum clustering), 'qpca' (quantum pca), 'qcc' (quantum clustering circuit)
         """
         self.quantum_available = quantum_available
         self.model_type = model_type.lower()
@@ -755,7 +755,7 @@ class ModelEvaluator:
                 'qsvc': 'results/df_qsvc.csv',
                 'cc': 'results/df_cc.csv',
                 'qc': 'results/df_qc.csv',
-                'qcc': 'results/df_qcc.csv',
+                'qcc': 'results/df_qcc.csv',  # Added QCC support
                 'cpca': 'results/df_cpca.csv',
                 'qpca': 'results/df_qpca.csv',
                 'qpca_rbf': 'results/df_qpca_rbf.csv'
@@ -808,7 +808,7 @@ class ModelEvaluator:
             self.existing_results = pd.DataFrame()
     
     def _should_skip_fold(self, n_clusters, fold_idx, model_type):
-        """Check if fold should be skipped based on existing results"""
+        """Check if fold should be skipped based on existing results - FIXED VERSION"""
         if self.existing_results.empty:
             return False
         
@@ -907,31 +907,6 @@ class ModelEvaluator:
                 'Median Read Out Error': 0
             }
     
-    # def _cluster_and_match(self, X, y_true, n_clusters, quantum=False):
-    #     """Perform clustering and align labels with ground truth using Hungarian matching"""
-    #     if quantum:
-    #         # Quantum kernel matrix
-    #         feature_map = ZZFeatureMap(feature_dimension=X.shape[1], reps=2)
-    #         qkernel = FidelityQuantumKernel(feature_map=feature_map)
-    #         kernel_matrix = qkernel.evaluate(X, X)
-    #         clustering = SpectralClustering(
-    #             n_clusters=n_clusters, affinity='precomputed', random_state=42
-    #         ).fit(kernel_matrix)
-    #     else:
-    #         # Classical RBF kernel matrix
-    #         kernel_matrix = rbf_kernel(X)
-    #         clustering = SpectralClustering(
-    #             n_clusters=n_clusters, affinity='precomputed', random_state=42
-    #         ).fit(kernel_matrix)
-
-    #     y_pred = clustering.labels_
-
-    #     # Align cluster labels with ground-truth using Hungarian assignment
-    #     cm = confusion_matrix(y_true, y_pred)
-    #     row_ind, col_ind = linear_sum_assignment(-cm)  # maximize match
-    #     mapping = {col: row for row, col in zip(row_ind, col_ind)}
-    #     y_aligned = np.array([mapping.get(label, -1) for label in y_pred])
-    #     return y_aligned
     def _cluster_and_match(self, X, y_true, n_clusters, quantum=False, quantum_circuit=False):
         """
         Perform clustering and align labels with ground truth using Hungarian matching
@@ -951,7 +926,6 @@ class ModelEvaluator:
         """
         
         if quantum_circuit:
-            print("HEREEE")
             # Quantum clustering circuit method (simulator-based)
             # Normalize the features into [0, π] for angle encoding
             scaler = MinMaxScaler(feature_range=(0, np.pi))
@@ -1118,7 +1092,7 @@ class ModelEvaluator:
         metrics = self.calculate_metrics(y_test, y_pred)
         
         # Determine if quantum metrics should be included
-        quantum_methods = ["qc", "qcc", "qsvc", "qpca", "qaoa"]  # Add "qcc"
+        quantum_methods = ["qc", "qcc", "qsvc", "qpca", "qaoa"]
         is_quantum = any(qm in model_lower for qm in quantum_methods)
         quantum_metrics = self.get_quantum_metrics() if is_quantum else {
             'Usage (s)': 0, 'Estimated Usage (s)': 0, 'Num Qubits': 0,
@@ -1133,7 +1107,7 @@ class ModelEvaluator:
         return fold_result
 
     def evaluate_feature_set(self, X, y, n_clusters, model_name='SVC'):
-        """Modified to handle different model types with proper fold-level resume"""
+        """FIXED VERSION - Modified to handle different model types with proper fold-level resume"""
         print(f"\n--- Evaluating {n_clusters}D features: {list(X.columns)} ---")
         
         scaler = StandardScaler()
@@ -1291,6 +1265,9 @@ class ModelEvaluator:
             'improvement': retrain_result['fold_score'] - best_score,
             'fold_scores': scores
         }
+
+    # Keep all other existing methods unchanged (plot_evaluation_results, main_with_resume, etc.)
+    # The rest of the class remains the same...
 
     
     def plot_evaluation_results(self, results_df, model_name="Model"):
