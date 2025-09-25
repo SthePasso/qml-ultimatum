@@ -816,28 +816,27 @@ class ModelEvaluator:
             # Ensure Model column is string and not NaN
             model_col = self.existing_results['Model'].fillna('').astype(str)
             
-            # Find matching models
-            model_pattern = f"{model_type}.*{n_clusters}D"
+            # Create exact model pattern (more precise matching)
+            exact_model_name = f"{model_type}_{n_clusters}D"
+            
+            # Find exact matching models (not regex, exact string match)
             matching_models = self.existing_results[
-                model_col.str.contains(model_pattern, regex=True, case=False, na=False)
+                model_col == exact_model_name
             ]
             
             if matching_models.empty:
+                print(f"  ➡️  No existing results for {exact_model_name}")
                 return False
             
             # Check if this exact fold exists
             fold_col = pd.to_numeric(matching_models['Fold'], errors='coerce')
-            exact_match = matching_models[fold_col == fold_idx]
-            if not exact_match.empty:
-                print(f"  ⏭️  Skipping {model_type}_{n_clusters}D fold {fold_idx} - already exists")
+            existing_folds = fold_col.dropna().astype(int)
+            
+            if fold_idx in existing_folds.values:
+                print(f"  ⏭️  Skipping {exact_model_name} fold {fold_idx} - already exists")
                 return True
             
-            # Check if we have higher folds
-            max_fold = fold_col.max()
-            if pd.notna(max_fold) and max_fold >= fold_idx:
-                print(f"  ⏭️  Skipping {model_type}_{n_clusters}D fold {fold_idx} - higher fold {int(max_fold)} exists")
-                return True
-            
+            print(f"  ✅  {exact_model_name} fold {fold_idx} not found - will run")
             return False
             
         except Exception as e:
@@ -1134,7 +1133,7 @@ class ModelEvaluator:
         return fold_result
 
     def evaluate_feature_set(self, X, y, n_clusters, model_name='SVC'):
-        """Modified to handle different model types and correct CSV saving"""
+        """Modified to handle different model types with proper fold-level resume"""
         print(f"\n--- Evaluating {n_clusters}D features: {list(X.columns)} ---")
         
         scaler = StandardScaler()
@@ -1144,12 +1143,18 @@ class ModelEvaluator:
         fold_results = []
         print("Fold Results:")
         
+        # Process each fold with skip logic
         for fold_idx, (train_idx, test_idx) in enumerate(kf.split(X_scaled)):
             current_fold = fold_idx + 1
+            
+            # Check if this specific fold should be skipped
+            if self._should_skip_fold(n_clusters, current_fold, model_name):
+                continue
+                
             X_train_fold, X_test_fold = X_scaled[train_idx], X_scaled[test_idx]
             y_train_fold, y_test_fold = y.iloc[train_idx], y.iloc[test_idx]
             
-            # Evaluate fold (will skip if already exists)
+            # Evaluate fold
             fold_result = self.evaluate_single_fold(
                 X_train_fold, X_test_fold, y_train_fold, y_test_fold, 
                 f"{model_name}_{n_clusters}D", current_fold
@@ -1159,18 +1164,19 @@ class ModelEvaluator:
                 fold_results.append(fold_result)
                 print(f"  Fold {current_fold:2d}: {fold_result['fold_score']:.4f}")
         
-        # Load any existing results for this dimension to complete the picture
+        # Load existing results for this specific model to get complete picture
         if not self.existing_results.empty:
             try:
                 model_col = self.existing_results['Model'].fillna('').astype(str)
-                model_pattern = f"{model_name}.*{n_clusters}D"
+                exact_model_name = f"{model_name}_{n_clusters}D"
+                
                 existing_folds = self.existing_results[
-                    model_col.str.contains(model_pattern, regex=True, case=False, na=False)
+                    model_col == exact_model_name
                 ]
                 
                 for _, row in existing_folds.iterrows():
                     fold_num = pd.to_numeric(row['Fold'], errors='coerce')
-                    if pd.notna(fold_num) and fold_num <= 10:  # Regular folds only
+                    if pd.notna(fold_num) and 1 <= fold_num <= 10:  # Regular folds only
                         existing_result = {
                             'fold_score': row.get('Accuracy', 0), 
                             'Fold': int(fold_num),
@@ -1180,13 +1186,14 @@ class ModelEvaluator:
                         # Add if not already in fold_results
                         if not any(fr.get('Fold') == int(fold_num) for fr in fold_results):
                             fold_results.append(existing_result)
+                            print(f"  Fold {int(fold_num):2d}: {existing_result['fold_score']:.4f} (loaded)")
             except Exception as e:
                 print(f"❌ Error loading existing folds: {e}")
         
         # Sort by fold number
         fold_results.sort(key=lambda x: x['Fold'])
         
-        # Continue with retraining logic if we have enough folds
+        # Check if we have enough folds to proceed with retraining
         if len(fold_results) >= 2:
             best_fold = max(fold_results, key=lambda x: x['fold_score'])
             worst_fold = min(fold_results, key=lambda x: x['fold_score'])
@@ -1202,7 +1209,7 @@ class ModelEvaluator:
             retrain_name = f"{model_name}_{n_clusters}D_retrained"
             try:
                 model_col = self.existing_results['Model'].fillna('').astype(str)
-                retrain_exists = model_col.str.contains(retrain_name, case=False, na=False).any()
+                retrain_exists = (model_col == retrain_name).any()
             except:
                 retrain_exists = False
             
@@ -1248,7 +1255,7 @@ class ModelEvaluator:
                 try:
                     model_col = self.existing_results['Model'].fillna('').astype(str)
                     retrain_row = self.existing_results[
-                        model_col.str.contains(retrain_name, case=False, na=False)
+                        model_col == retrain_name
                     ].iloc[0]
                     retrain_result = {'fold_score': retrain_row.get('Accuracy', 0)}
                     print(f"✓ Retrained model loaded: {retrain_result['fold_score']:.4f}")
@@ -1265,21 +1272,26 @@ class ModelEvaluator:
         best_score = max(scores) if scores else 0
         worst_score = min(scores) if scores else 0
         
-        # Find the corresponding fold numbers (already integers from above)
+        # Find the corresponding fold numbers
         best_fold_num = next((r['Fold'] for r in fold_results if r['fold_score'] == best_score), 1)
         worst_fold_num = next((r['Fold'] for r in fold_results if r['fold_score'] == worst_score), 1)
         
+        print(f"📊 Summary for {model_name}_{n_clusters}D:")
+        print(f"   Completed folds: {len(fold_results)}/10")
+        print(f"   Average CV score: {avg_score:.4f} ± {std_score:.4f}")
+        
         return {
             'n_clusters': n_clusters, 'features': list(X.columns),
-            'best_fold_num': int(best_fold_num),  # Ensure integer
+            'best_fold_num': int(best_fold_num),
             'best_fold_score': best_score,
-            'worst_fold_num': int(worst_fold_num),  # Ensure integer
+            'worst_fold_num': int(worst_fold_num),
             'worst_fold_score': worst_score,
             'retrained_score': retrain_result['fold_score'],
             'avg_cv_score': avg_score, 'std_cv_score': std_score,
             'improvement': retrain_result['fold_score'] - best_score,
             'fold_scores': scores
         }
+
     
     def plot_evaluation_results(self, results_df, model_name="Model"):
         """Plot evaluation results with correct titles for different model types."""
