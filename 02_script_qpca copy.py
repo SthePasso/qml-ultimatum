@@ -1741,5 +1741,5 @@ processor = MinimalDataProcessor(
 feature_2to10 = processor.run_all()
 feature_2to10 = feature_2to10[:9]
 
-evaluator_qcc = create_evaluator('qsvc', quantum_available=True)
+evaluator_qcc = create_evaluator('qpca', quantum_available=True)
 results_qcc = evaluator_qcc.main_with_resume(feature_2to10, df, y)

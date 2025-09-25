@@ -76,6 +76,11 @@ from qiskit.circuit.library import ZZFeatureMap
 from qiskit_machine_learning.kernels import FidelityQuantumKernel
 from qiskit_machine_learning.algorithms import QSVC
 
+
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import adjusted_rand_score
+from qiskit import transpile, QuantumCircuit
+
 np.random.seed(42)
 #algorithm_globals.random_seed = 123
 
@@ -750,6 +755,7 @@ class ModelEvaluator:
                 'qsvc': 'results/df_qsvc.csv',
                 'cc': 'results/df_cc.csv',
                 'qc': 'results/df_qc.csv',
+                'qcc': 'results/df_qcc.csv',
                 'cpca': 'results/df_cpca.csv',
                 'qpca': 'results/df_qpca.csv',
                 'qpca_rbf': 'results/df_qpca_rbf.csv'
@@ -902,24 +908,107 @@ class ModelEvaluator:
                 'Median Read Out Error': 0
             }
     
-    def _cluster_and_match(self, X, y_true, n_clusters, quantum=False):
-        """Perform clustering and align labels with ground truth using Hungarian matching"""
-        if quantum:
-            # Quantum kernel matrix
+    # def _cluster_and_match(self, X, y_true, n_clusters, quantum=False):
+    #     """Perform clustering and align labels with ground truth using Hungarian matching"""
+    #     if quantum:
+    #         # Quantum kernel matrix
+    #         feature_map = ZZFeatureMap(feature_dimension=X.shape[1], reps=2)
+    #         qkernel = FidelityQuantumKernel(feature_map=feature_map)
+    #         kernel_matrix = qkernel.evaluate(X, X)
+    #         clustering = SpectralClustering(
+    #             n_clusters=n_clusters, affinity='precomputed', random_state=42
+    #         ).fit(kernel_matrix)
+    #     else:
+    #         # Classical RBF kernel matrix
+    #         kernel_matrix = rbf_kernel(X)
+    #         clustering = SpectralClustering(
+    #             n_clusters=n_clusters, affinity='precomputed', random_state=42
+    #         ).fit(kernel_matrix)
+
+    #     y_pred = clustering.labels_
+
+    #     # Align cluster labels with ground-truth using Hungarian assignment
+    #     cm = confusion_matrix(y_true, y_pred)
+    #     row_ind, col_ind = linear_sum_assignment(-cm)  # maximize match
+    #     mapping = {col: row for row, col in zip(row_ind, col_ind)}
+    #     y_aligned = np.array([mapping.get(label, -1) for label in y_pred])
+    #     return y_aligned
+    def _cluster_and_match(self, X, y_true, n_clusters, quantum=False, quantum_circuit=False):
+        """
+        Perform clustering and align labels with ground truth using Hungarian matching
+        
+        Parameters:
+        -----------
+        X : array-like
+            Input features
+        y_true : array-like
+            True labels
+        n_clusters : int
+            Number of clusters
+        quantum : bool
+            Use quantum kernel (original method)
+        quantum_circuit : bool
+            Use quantum clustering circuit method (simulator-based)
+        """
+        
+        if quantum_circuit:
+            print("HEREEE")
+            # Quantum clustering circuit method (simulator-based)
+            # Normalize the features into [0, π] for angle encoding
+            scaler = MinMaxScaler(feature_range=(0, np.pi))
+            X_scaled = scaler.fit_transform(X)
+            
+            # Clustering parameters
+            n_epochs = 2  # Reduced for efficiency in evaluation
+            n_samples = X_scaled.shape[0]
+            num_features = X_scaled.shape[1]
+            
+            # Use quantum kernel similar to QSVC approach
+            feature_map = ZZFeatureMap(feature_dimension=num_features, reps=2)
+            fidelity_quantum_kernel = FidelityQuantumKernel(feature_map=feature_map)
+            
+            # Initialize random cluster centers
+            cluster_centers = X_scaled[np.random.choice(n_samples, n_clusters, replace=False)]
+            
+            # Main training loop (Quantum Kernel k-means style)
+            for epoch in range(n_epochs):
+                y_pred = np.zeros(n_samples)
+                
+                # Assign points to nearest cluster using quantum kernel similarity
+                for i, x in enumerate(X_scaled):
+                    similarities = []
+                    for c in cluster_centers:
+                        # Evaluate quantum kernel between point and cluster center
+                        sim_matrix = fidelity_quantum_kernel.evaluate(
+                            x.reshape(1, -1), 
+                            c.reshape(1, -1)
+                        )
+                        similarities.append(sim_matrix[0, 0])
+                    y_pred[i] = np.argmax(similarities)
+                
+                # Update cluster centers (mean of assigned samples)
+                for j in range(n_clusters):
+                    points_in_cluster = X_scaled[y_pred == j]
+                    if len(points_in_cluster) > 0:
+                        cluster_centers[j] = np.mean(points_in_cluster, axis=0)
+            
+        elif quantum:
+            # Original quantum kernel matrix method
             feature_map = ZZFeatureMap(feature_dimension=X.shape[1], reps=2)
             qkernel = FidelityQuantumKernel(feature_map=feature_map)
             kernel_matrix = qkernel.evaluate(X, X)
             clustering = SpectralClustering(
                 n_clusters=n_clusters, affinity='precomputed', random_state=42
             ).fit(kernel_matrix)
+            y_pred = clustering.labels_
+            
         else:
             # Classical RBF kernel matrix
             kernel_matrix = rbf_kernel(X)
             clustering = SpectralClustering(
                 n_clusters=n_clusters, affinity='precomputed', random_state=42
             ).fit(kernel_matrix)
-
-        y_pred = clustering.labels_
+            y_pred = clustering.labels_
 
         # Align cluster labels with ground-truth using Hungarian assignment
         cm = confusion_matrix(y_true, y_pred)
@@ -993,12 +1082,19 @@ class ModelEvaluator:
         
         return y_pred
 
-    def evaluate_single_fold(self, X_train, X_test, y_train, y_test, model_name, fold_idx):
+    def evaluate_single_fold(self, X_train, X_test, y_train, y_test, model_name, fold_idx, service=None, backend_name=None):
         """Enhanced to support classification, clustering, and PCA methods"""
         start_time = time.time()
         model_lower = model_name.lower()
 
-        if "qc" in model_lower:   # Quantum clustering
+        if "qcc" in model_lower:         # Quantum clustering circuit
+            y_pred = self._cluster_and_match(
+                X_test, y_test, 
+                n_clusters=len(np.unique(y_test)), 
+                quantum=False, 
+                quantum_circuit=True
+            )
+        elif "qc" in model_lower:   # Quantum clustering
             y_pred = self._cluster_and_match(X_test, y_test, n_clusters=len(np.unique(y_test)), quantum=True)
         elif "cc" in model_lower: # Classical clustering
             y_pred = self._cluster_and_match(X_test, y_test, n_clusters=len(np.unique(y_test)), quantum=False)
@@ -1023,7 +1119,7 @@ class ModelEvaluator:
         metrics = self.calculate_metrics(y_test, y_pred)
         
         # Determine if quantum metrics should be included
-        quantum_methods = ["qc", "qsvc", "qpca"]
+        quantum_methods = ["qc", "qcc", "qsvc", "qpca", "qaoa"]  # Add "qcc"
         is_quantum = any(qm in model_lower for qm in quantum_methods)
         quantum_metrics = self.get_quantum_metrics() if is_quantum else {
             'Usage (s)': 0, 'Estimated Usage (s)': 0, 'Num Qubits': 0,
@@ -1036,7 +1132,7 @@ class ModelEvaluator:
         }
         self._save_result(fold_result)
         return fold_result
-    
+
     def evaluate_feature_set(self, X, y, n_clusters, model_name='SVC'):
         """Modified to handle different model types and correct CSV saving"""
         print(f"\n--- Evaluating {n_clusters}D features: {list(X.columns)} ---")
@@ -1193,6 +1289,7 @@ class ModelEvaluator:
             'qsvc': 'Quantum SVM', 
             'cc': 'Classical Clustering',
             'qc': 'Quantum Clustering',
+            'qcc': 'Quantum Clustering Circuit',
             'cpca': 'Classical PCA',
             'qpca': 'Quantum PCA',
             'qpca_rbf': 'Quantum PCA + RBF'
@@ -1411,7 +1508,7 @@ class ModelEvaluator:
         print(f"🆕 New dimensions processed: {len(all_results)}")
         
         return all_results
-        
+
     def _parse_csv_to_summary(self, csv_filename):
         """
         Parse CSV data into the same summary format used by main_with_resume
@@ -1582,33 +1679,27 @@ def create_evaluator(model_type, quantum_available=False):
     """
     return ModelEvaluator(quantum_available=quantum_available, model_type=model_type)
 
+# Usage Examples:
+"""
+# Classical SVM
+evaluator_svc = create_evaluator('svc', quantum_available=False)
+results_svc = evaluator_svc.main_with_resume(feature_2to10, df, y)
 
-processor = MinimalDataProcessor(
-    dataset_path=dataset_path,
-    target_col='class'
-)
-feature_2to10 = processor.run_all()
-feature_2to10 = feature_2to10[:9]
+# Quantum SVM
+evaluator_qsvc = create_evaluator('qsvc', quantum_available=True)  
+results_qsvc = evaluator_qsvc.main_with_resume(feature_2to10, df, y)
 
-# # Classical SVM
-# evaluator_svc = create_evaluator('svc', quantum_available=False)
-# results_svc = evaluator_svc.main_with_resume(feature_2to10, df, y)
+# Classical Clustering (saves to df_cc.csv)
+evaluator_cc = create_evaluator('cc', quantum_available=False)
+results_cc = evaluator_cc.main_with_resume(feature_2to10, df, y)
 
-# # Quantum SVM
-# evaluator_qsvc = create_evaluator('qsvc', quantum_available=True)  
-# results_qsvc = evaluator_qsvc.main_with_resume(feature_2to10, df, y)
+# Quantum Clustering (saves to df_qc.csv)
+evaluator_qc = create_evaluator('qc', quantum_available=True)
+results_qc = evaluator_qc.main_with_resume(feature_2to10, df, y)
 
-# # Classical Clustering (saves to df_cc.csv)
-# evaluator_cc = create_evaluator('cc', quantum_available=False)
-# results_cc = evaluator_cc.main_with_resume(feature_2to10, df, y)
-
-# # Quantum Clustering (saves to df_qc.csv)
-# evaluator_qc = create_evaluator('qc', quantum_available=True)
-# results_qc = evaluator_qc.main_with_resume(feature_2to10, df, y)
-
-# # Classical PCA (saves to df_cpca.csv)
-# evaluator_cpca = create_evaluator('cpca', quantum_available=False)
-# results_cpca = evaluator_cpca.main_with_resume(feature_2to10, df, y)
+# Classical PCA (saves to df_cpca.csv)
+evaluator_cpca = create_evaluator('cpca', quantum_available=False)
+results_cpca = evaluator_cpca.main_with_resume(feature_2to10, df, y)
 
 # Quantum PCA (saves to df_qpca.csv)
 evaluator_qpca = create_evaluator('qpca', quantum_available=True)
@@ -1617,3 +1708,38 @@ results_qpca = evaluator_qpca.main_with_resume(feature_2to10, df, y)
 # Quantum PCA + RBF (saves to df_qpca_rbf.csv)
 evaluator_qpca_rbf = create_evaluator('qpca_rbf', quantum_available=True)
 results_qpca_rbf = evaluator_qpca_rbf.main_with_resume(feature_2to10, df, y)
+
+# Load and plot results
+evaluator_cc.load_data_plot("results/df_cc.csv")  # Will show "Classical Clustering"
+evaluator_qc.load_data_plot("results/df_qc.csv")  # Will show "Quantum Clustering"
+evaluator_cpca.load_data_plot("results/df_cpca.csv")  # Will show "Classical PCA"
+evaluator_qpca.load_data_plot("results/df_qpca.csv")  # Will show "Quantum PCA"
+evaluator_qpca_rbf.load_data_plot("results/df_qpca_rbf.csv")  # Will show "Quantum PCA + RBF"
+
+# For individual evaluation (single feature set)
+# Classical clustering on specific feature set
+evaluator_cc = create_evaluator('cc')
+n_clusters = len(np.unique(y))  # Number of unique classes
+results = evaluator_cc.evaluate_feature_set(df[feature_2to10[0]], y, n_clusters, 'CC')
+
+# Quantum clustering on specific feature set  
+evaluator_qc = create_evaluator('qc', quantum_available=True)
+results = evaluator_qc.evaluate_feature_set(df[feature_2to10[0]], y, n_clusters, 'QC')
+
+# Classical PCA on specific feature set
+evaluator_cpca = create_evaluator('cpca')
+results = evaluator_cpca.evaluate_feature_set(df[feature_2to10[0]], y, n_clusters, 'CPCA')
+
+# Quantum PCA on specific feature set
+evaluator_qpca = create_evaluator('qpca', quantum_available=True) 
+results = evaluator_qpca.evaluate_feature_set(df[feature_2to10[0]], y, n_clusters, 'QPCA')
+"""
+processor = MinimalDataProcessor(
+    dataset_path=dataset_path,
+    target_col='class'
+)
+feature_2to10 = processor.run_all()
+feature_2to10 = feature_2to10[:9]
+
+evaluator_qcc = create_evaluator('qpca_rbf', quantum_available=True)
+results_qcc = evaluator_qcc.main_with_resume(feature_2to10, df, y)
