@@ -1,0 +1,10 @@
+{
+  "model_name": "QCC_7D",
+  "model_type": "qcc",
+  "n_clusters": 7,
+  "fold_idx": 3,
+  "score": 0.535645472061657,
+  "saved_at": "2025-10-01T16:00:35.890104",
+  "model_file": "../results/models/qcc_7d/QCC_7D_fold_3.pkl",
+  "metadata_file": "../results/models/qcc_7d/QCC_7D_fold_3_metadata.json"
+}
