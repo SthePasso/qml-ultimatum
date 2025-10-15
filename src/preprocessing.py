@@ -10,7 +10,7 @@ class MinimalDataProcessor:
     def __init__(self, dataset_path, target_col='class', exclude_cols=None, num_samples=1000):
         self.dataset_path = dataset_path
         self.target_col = target_col
-        self.exclude_cols = exclude_cols or ["e_magic", "e_crlc"]
+        self.exclude_cols = exclude_cols or ["e_magic", "e_crlc","Armadillov1xxv2xx"]
         self.num_samples = num_samples
         self.df = None
         self.feature_2to10 = []
