@@ -30,7 +30,7 @@ feature_2to10 = feature_2to10[:9]
 # MODEL TRAIN*************************************************
 # models = ["svc", "qsvc", "cc", "qc", "qcc", "cpca", "qpca", "qpca_rbf"]
 
-models = ["svc", "qsvc", "cc", "qc", "cpca", "qpca", "qpca_rbf"]
+models = ["cc", "qc", "cpca", "qpca", "qpca_rbf"]
 
 for i in range(0,len(models)):
     evaluator_qc = create_evaluator(
