@@ -1,0 +1,10 @@
+{
+  "model_name": "QC_6D",
+  "model_type": "qc",
+  "n_clusters": 6,
+  "fold_idx": 2,
+  "score": 0.6142034548944337,
+  "saved_at": "2025-10-16T04:18:39.542865",
+  "model_file": "../results/models/qc_6d/QC_6D_fold_2.pkl",
+  "metadata_file": "../results/models/qc_6d/QC_6D_fold_2_metadata.json"
+}

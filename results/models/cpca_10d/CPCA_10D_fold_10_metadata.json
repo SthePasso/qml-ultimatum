@@ -1,0 +1,10 @@
+{
+  "model_name": "CPCA_10D",
+  "model_type": "cpca",
+  "n_clusters": 10,
+  "fold_idx": 10,
+  "score": 0.9059500959692899,
+  "saved_at": "2025-10-19T03:56:51.872778",
+  "model_file": "../results/models/cpca_10d/CPCA_10D_fold_10.pkl",
+  "metadata_file": "../results/models/cpca_10d/CPCA_10D_fold_10_metadata.json"
+}

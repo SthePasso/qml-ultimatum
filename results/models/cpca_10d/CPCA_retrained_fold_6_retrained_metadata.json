@@ -1,0 +1,10 @@
+{
+  "model_name": "CPCA_retrained",
+  "model_type": "cpca",
+  "n_clusters": 10,
+  "fold_idx": "6_retrained",
+  "score": 0.9289827255278311,
+  "saved_at": "2025-10-19T03:56:52.989399",
+  "model_file": "../results/models/cpca_10d/CPCA_retrained_fold_6_retrained.pkl",
+  "metadata_file": "../results/models/cpca_10d/CPCA_retrained_fold_6_retrained_metadata.json"
+}

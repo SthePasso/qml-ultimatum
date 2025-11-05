@@ -1,0 +1,10 @@
+{
+  "model_name": "SVC_retrained",
+  "model_type": "svc",
+  "n_clusters": 9,
+  "fold_idx": "6_retrained",
+  "score": 0.8809980806142035,
+  "saved_at": "2025-10-15T13:16:29.757657",
+  "model_file": "../results/models/svc_9d/SVC_retrained_fold_6_retrained.pkl",
+  "metadata_file": "../results/models/svc_9d/SVC_retrained_fold_6_retrained_metadata.json"
+}

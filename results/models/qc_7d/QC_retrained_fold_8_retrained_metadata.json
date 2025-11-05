@@ -1,0 +1,10 @@
+{
+  "model_name": "QC_retrained",
+  "model_type": "qc",
+  "n_clusters": 7,
+  "fold_idx": "8_retrained",
+  "score": 0.6276391554702495,
+  "saved_at": "2025-10-17T22:45:40.523129",
+  "model_file": "../results/models/qc_7d/QC_retrained_fold_8_retrained.pkl",
+  "metadata_file": "../results/models/qc_7d/QC_retrained_fold_8_retrained_metadata.json"
+}

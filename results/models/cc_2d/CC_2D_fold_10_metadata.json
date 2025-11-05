@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_2D",
+  "model_type": "cc",
+  "n_clusters": 2,
+  "fold_idx": 10,
+  "score": 0.6525911708253359,
+  "saved_at": "2025-10-15T22:06:39.218154",
+  "model_file": "../results/models/cc_2d/CC_2D_fold_10.pkl",
+  "metadata_file": "../results/models/cc_2d/CC_2D_fold_10_metadata.json"
+}

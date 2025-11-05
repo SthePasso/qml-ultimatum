@@ -1,0 +1,10 @@
+{
+  "model_name": "CPCA_2D",
+  "model_type": "cpca",
+  "n_clusters": 2,
+  "fold_idx": 2,
+  "score": 0.6564299424184261,
+  "saved_at": "2025-10-19T03:55:24.956624",
+  "model_file": "../results/models/cpca_2d/CPCA_2D_fold_2.pkl",
+  "metadata_file": "../results/models/cpca_2d/CPCA_2D_fold_2_metadata.json"
+}

@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_3D",
+  "model_type": "cc",
+  "n_clusters": 3,
+  "fold_idx": 8,
+  "score": 0.5623800383877159,
+  "saved_at": "2025-10-15T22:06:39.530183",
+  "model_file": "../results/models/cc_3d/CC_3D_fold_8.pkl",
+  "metadata_file": "../results/models/cc_3d/CC_3D_fold_8_metadata.json"
+}

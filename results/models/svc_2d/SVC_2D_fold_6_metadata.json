@@ -1,0 +1,10 @@
+{
+  "model_name": "SVC_2D",
+  "model_type": "svc",
+  "n_clusters": 2,
+  "fold_idx": 6,
+  "score": 0.6967370441458733,
+  "saved_at": "2025-10-15T13:15:27.379427",
+  "model_file": "../results/models/svc_2d/SVC_2D_fold_6.pkl",
+  "metadata_file": "../results/models/svc_2d/SVC_2D_fold_6_metadata.json"
+}

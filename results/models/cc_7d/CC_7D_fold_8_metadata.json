@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_7D",
+  "model_type": "cc",
+  "n_clusters": 7,
+  "fold_idx": 8,
+  "score": 0.5028790786948176,
+  "saved_at": "2025-10-15T22:06:41.093010",
+  "model_file": "../results/models/cc_7d/CC_7D_fold_8.pkl",
+  "metadata_file": "../results/models/cc_7d/CC_7D_fold_8_metadata.json"
+}

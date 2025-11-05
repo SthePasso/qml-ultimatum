@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_9D",
+  "model_type": "cc",
+  "n_clusters": 9,
+  "fold_idx": 6,
+  "score": 0.5758157389635317,
+  "saved_at": "2025-10-15T22:06:41.830843",
+  "model_file": "../results/models/cc_9d/CC_9D_fold_6.pkl",
+  "metadata_file": "../results/models/cc_9d/CC_9D_fold_6_metadata.json"
+}

@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_retrained",
+  "model_type": "cc",
+  "n_clusters": 7,
+  "fold_idx": "6_retrained",
+  "score": 0.5758157389635317,
+  "saved_at": "2025-10-15T22:06:41.207680",
+  "model_file": "../results/models/cc_7d/CC_retrained_fold_6_retrained.pkl",
+  "metadata_file": "../results/models/cc_7d/CC_retrained_fold_6_retrained_metadata.json"
+}

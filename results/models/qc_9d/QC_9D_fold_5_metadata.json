@@ -1,0 +1,10 @@
+{
+  "model_name": "QC_9D",
+  "model_type": "qc",
+  "n_clusters": 9,
+  "fold_idx": 5,
+  "score": 0.5124760076775432,
+  "saved_at": "2025-10-18T09:33:26.084993",
+  "model_file": "../results/models/qc_9d/QC_9D_fold_5.pkl",
+  "metadata_file": "../results/models/qc_9d/QC_9D_fold_5_metadata.json"
+}

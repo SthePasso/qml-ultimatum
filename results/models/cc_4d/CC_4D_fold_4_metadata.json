@@ -1,0 +1,10 @@
+{
+  "model_name": "CC_4D",
+  "model_type": "cc",
+  "n_clusters": 4,
+  "fold_idx": 4,
+  "score": 0.5143953934740882,
+  "saved_at": "2025-10-15T22:06:39.772574",
+  "model_file": "../results/models/cc_4d/CC_4D_fold_4.pkl",
+  "metadata_file": "../results/models/cc_4d/CC_4D_fold_4_metadata.json"
+}
