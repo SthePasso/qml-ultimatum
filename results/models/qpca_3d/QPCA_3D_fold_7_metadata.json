@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_3D",
+  "model_type": "qpca",
+  "n_clusters": 3,
+  "fold_idx": 7,
+  "score": 0.5431861804222649,
+  "saved_at": "2025-11-22T16:48:18.100566",
+  "model_file": "../results/models/qpca_3d/QPCA_3D_fold_7.pkl",
+  "metadata_file": "../results/models/qpca_3d/QPCA_3D_fold_7_metadata.json"
+}
