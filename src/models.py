@@ -1167,7 +1167,316 @@ def create_evaluator(model_type, quantum_available=False, results_dir="results/e
             results_dir=results_dir,
             models_dir=models_dir
     )
-# Usage Examples:
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import time
+
+def create_evaluator_small(model_type, quantum_available=False, results_dir="results/evaluation", models_dir="results/models"):
+    """
+    Factory function to create evaluator for small dataset experiments
+    
+    This version creates datasets with varying percentages (10%, 20%, etc.) 
+    and evaluates them with 2-10 features from feature_2to10 WITHOUT cross-validation.
+    
+    Parameters:
+    -----------
+    model_type : str
+        'svc', 'qsvc', 'cc', 'qc', 'qcc', 'cpca', 'qpca', 'qpca_rbf'
+    quantum_available : bool
+        Whether quantum computing is available
+    results_dir : str
+        Directory for CSV evaluation results
+    models_dir : str
+        Directory for saved model files
+    
+    Returns:
+    --------
+    ModelEvaluatorSmall: Evaluator instance for small dataset experiments
+    """
+    
+    # Import the base ModelEvaluator
+    from models import ModelEvaluator
+    
+    class ModelEvaluatorSmall(ModelEvaluator):
+        """Extended ModelEvaluator for small dataset percentage experiments"""
+        
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # Override CSV filename to indicate small dataset experiments
+            csv_file = f"df_{self.model_type}_small.csv"
+            self.csv_filename = str(self.results_dir / csv_file)
+            self._load_existing_results()
+        
+        def create_balanced_subset(self, df, y, percentage):
+            """
+            Create balanced subset with specified percentage of data
+            
+            Parameters:
+            -----------
+            df : pd.DataFrame
+                Full dataset
+            y : pd.Series
+                Target labels
+            percentage : float
+                Percentage of data to use (e.g., 0.1 for 10%)
+            
+            Returns:
+            --------
+            tuple: (X_subset, y_subset) - balanced subset of data
+            """
+            # Get indices for each class
+            class_0_idx = y[y == 0].index
+            class_1_idx = y[y == 1].index
+            
+            # Calculate samples per class (50% of percentage from each class)
+            n_samples_per_class = int(len(y) * percentage / 2)
+            
+            # Randomly sample from each class
+            np.random.seed(42)
+            selected_0 = np.random.choice(class_0_idx, size=n_samples_per_class, replace=False)
+            selected_1 = np.random.choice(class_1_idx, size=n_samples_per_class, replace=False)
+            
+            # Combine indices
+            selected_indices = np.concatenate([selected_0, selected_1])
+            np.random.shuffle(selected_indices)
+            
+            # Create subset
+            X_subset = df.loc[selected_indices]
+            y_subset = y.loc[selected_indices]
+            
+            print(f"   📊 Created {percentage*100:.0f}% subset: {len(y_subset)} samples")
+            print(f"      Class 0: {sum(y_subset == 0)} samples, Class 1: {sum(y_subset == 1)} samples")
+            
+            return X_subset, y_subset
+        
+        def _check_if_exists(self, percentage, n_features, model_name):
+            """Check if this percentage-dimension combination already exists"""
+            if self.existing_results.empty:
+                return False
+            
+            try:
+                model_col = self.existing_results['Model'].fillna('').astype(str)
+                exact_name = f"{model_name}_{int(percentage*100)}pct_{n_features}D"
+                
+                exists = (model_col == exact_name).any()
+                
+                if exists:
+                    print(f"  ⏭️  Skipping {exact_name} - already exists")
+                    return True
+                else:
+                    print(f"  ✅  {exact_name} not found - will run")
+                    return False
+                    
+            except Exception as e:
+                print(f"❌ Error checking existence: {e}")
+                return False
+        
+        def evaluate_single_split(self, X_train, X_test, y_train, y_test, model_name, n_features, scaler=None):
+            """
+            Evaluate a single train/test split (no cross-validation)
+            
+            Parameters:
+            -----------
+            X_train, X_test : arrays
+                Training and test features
+            y_train, y_test : arrays
+                Training and test labels
+            model_name : str
+                Model identifier
+            n_features : int
+                Number of features
+            scaler : StandardScaler
+                Fitted scaler
+            
+            Returns:
+            --------
+            dict: Evaluation results
+            """
+            start_time = time.time()
+            
+            # Train and get predictions using parent class method
+            trained_model, y_pred, fold_score = self._train_and_save_model(
+                X_train, X_test, y_train, y_test, model_name, 
+                fold_idx=n_features, n_clusters=n_features, scaler=scaler
+            )
+            
+            elapsed_time = time.time() - start_time
+            metrics = self.calculate_metrics(y_test, y_pred)
+            
+            quantum_methods = ["qc", "qcc", "qsvc", "qpca", "qaoa"]
+            is_quantum = any(qm in model_name.lower() for qm in quantum_methods)
+            quantum_metrics = self.get_quantum_metrics() if is_quantum else {
+                'Usage (s)': 0, 'Estimated Usage (s)': 0, 'Num Qubits': 0,
+                'Median T1': 0, 'Median T2': 0, 'Median Read Out Error': 0
+            }
+
+            result = {
+                'Model': model_name,
+                'Fold': n_features,  # Use n_features as "Fold" for display
+                'Elapsed Time (s)': elapsed_time,
+                **metrics,
+                **quantum_metrics
+            }
+            
+            self._save_result(result)
+            return result
+        
+        def evaluate_feature_set_small(self, X, y, n_features, percentage, model_name='SVC'):
+            """
+            Evaluate feature set with specific number of features and data percentage
+            Uses simple train/test split instead of cross-validation
+            
+            Parameters:
+            -----------
+            X : pd.DataFrame
+                Feature data
+            y : pd.Series
+                Target labels
+            n_features : int
+                Number of features to use (2-10)
+            percentage : float
+                Percentage of data to use
+            model_name : str
+                Model identifier
+            
+            Returns:
+            --------
+            dict: Evaluation results
+            """
+            # Create model name WITHOUT duplicating dimension
+            model_id = f"{model_name}_{int(percentage*100)}pct_{n_features}D"
+            
+            # Check if already exists
+            if self._check_if_exists(percentage, n_features, model_name):
+                return None
+            
+            print(f"\n--- Training {model_id} ---")
+            
+            # Scale the data
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+            
+            # Simple train/test split (80/20)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X_scaled, y, test_size=0.2, random_state=42, stratify=y
+            )
+            
+            print(f"   Train samples: {len(y_train)}, Test samples: {len(y_test)}")
+            
+            # Evaluate single split
+            result = self.evaluate_single_split(
+                X_train, X_test, y_train, y_test, 
+                model_id, n_features, scaler
+            )
+            
+            if result:
+                print(f"   ✓ Accuracy: {result['Accuracy']:.4f}")
+            
+            return result
+        
+        def run_small_experiments(self, feature_2to10, df, y, percentages=[0.1, 0.2, 0.3, 0.4, 0.5], 
+                                 min_features=2, max_features=10, model_type=None):
+            """
+            Run experiments with varying percentages and feature counts
+            
+            Parameters:
+            -----------
+            feature_2to10 : list
+                List of feature lists for 2-10 dimensions
+            df : pd.DataFrame
+                Full dataset
+            y : pd.Series
+                Target labels
+            percentages : list
+                List of percentages to test (e.g., [0.1, 0.2, 0.3])
+            min_features : int
+                Minimum number of features to test
+            max_features : int
+                Maximum number of features to test
+            model_type : str
+                Model type identifier
+            
+            Returns:
+            --------
+            dict: Results organized by percentage
+            """
+            if model_type is None:
+                model_type = self.model_type
+            
+            print("="*80)
+            print(f"{model_type.upper()} SMALL DATASET EXPERIMENTS")
+            print(f"Percentages: {[f'{int(p*100)}%' for p in percentages]}")
+            print(f"Features: {min_features} to {max_features}")
+            print(f"📁 CSV: {self.csv_filename}")
+            print("="*80)
+            
+            all_results = {}
+            
+            for percentage in percentages:
+                print(f"\n{'='*80}")
+                print(f"PROCESSING {int(percentage*100)}% OF DATA")
+                print(f"{'='*80}")
+                
+                # Create balanced subset for this percentage
+                X_subset, y_subset = self.create_balanced_subset(df, y, percentage)
+                
+                percentage_results = []
+                
+                # Test with different numbers of features
+                for n_features in range(min_features, min(max_features + 1, len(feature_2to10) + 2)):
+                    feature_idx = n_features - 2  # feature_2to10 is 0-indexed
+                    
+                    if feature_idx >= len(feature_2to10):
+                        print(f"⚠️  Skipping {n_features} features (not in feature_2to10)")
+                        continue
+                    
+                    # Select features for this subset
+                    selected_features = feature_2to10[feature_idx]
+                    X_features = X_subset[selected_features]
+                    
+                    # Evaluate this combination
+                    result = self.evaluate_feature_set_small(
+                        X_features, y_subset, n_features, percentage, model_type.upper()
+                    )
+                    
+                    if result:
+                        percentage_results.append(result)
+                
+                all_results[f"{int(percentage*100)}%"] = percentage_results
+                
+                # Print summary for this percentage
+                if percentage_results:
+                    print(f"\n📊 Summary for {int(percentage*100)}% data:")
+                    for res in percentage_results:
+                        print(f"   {res['Fold']}D: Accuracy = {res['Accuracy']:.4f}")
+            
+            # Final summary
+            print("\n" + "="*80)
+            print("EXPERIMENT COMPLETE - SUMMARY")
+            print("="*80)
+            
+            for pct_label, results in all_results.items():
+                if results:
+                    print(f"\n{pct_label} Data:")
+                    for res in results:
+                        print(f"   {res['Fold']}D: Accuracy = {res['Accuracy']:.4f}, "
+                              f"Precision = {res['Precision']:.4f}, "
+                              f"F1 = {res['F1 Score']:.4f}")
+            
+            print(f"\n✅ All experiments complete! Results in {self.csv_filename}")
+            
+            return all_results
+    
+    return ModelEvaluatorSmall(
+        quantum_available=quantum_available,
+        model_type=model_type,
+        results_dir=results_dir,
+        models_dir=models_dir
+    )# Usage Examples:
 """
 # Classical SVM
 evaluator_svc = create_evaluator('svc', quantum_available=False)

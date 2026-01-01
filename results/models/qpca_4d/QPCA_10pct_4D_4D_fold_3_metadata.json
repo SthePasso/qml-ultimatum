@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_10pct_4D_4D",
+  "model_type": "qpca",
+  "n_clusters": 4,
+  "fold_idx": 3,
+  "score": 0.6730769230769231,
+  "saved_at": "2025-12-30T14:11:57.000563",
+  "model_file": "../results/models/qpca_4d/QPCA_10pct_4D_4D_fold_3.pkl",
+  "metadata_file": "../results/models/qpca_4d/QPCA_10pct_4D_4D_fold_3_metadata.json"
+}

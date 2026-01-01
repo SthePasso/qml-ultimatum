@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_10pct_2D_2D",
+  "model_type": "qpca",
+  "n_clusters": 2,
+  "fold_idx": 10,
+  "score": 0.6666666666666666,
+  "saved_at": "2025-12-30T12:42:43.005593",
+  "model_file": "../results/models/qpca_2d/QPCA_10pct_2D_2D_fold_10.pkl",
+  "metadata_file": "../results/models/qpca_2d/QPCA_10pct_2D_2D_fold_10_metadata.json"
+}

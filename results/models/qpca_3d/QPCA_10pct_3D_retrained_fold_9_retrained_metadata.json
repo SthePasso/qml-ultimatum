@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_10pct_3D_retrained",
+  "model_type": "qpca",
+  "n_clusters": 3,
+  "fold_idx": "9_retrained",
+  "score": 0.7450980392156863,
+  "saved_at": "2025-12-30T13:44:42.286002",
+  "model_file": "../results/models/qpca_3d/QPCA_10pct_3D_retrained_fold_9_retrained.pkl",
+  "metadata_file": "../results/models/qpca_3d/QPCA_10pct_3D_retrained_fold_9_retrained_metadata.json"
+}
