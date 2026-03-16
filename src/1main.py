@@ -6,8 +6,8 @@ import pandas as pd
 import os
 
 # Define the dataset path
-# dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
-dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+# dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
 files = os.listdir(dataset_path)
 csv_files = [f for f in files if f.endswith('.csv')]
 if csv_files:
@@ -28,9 +28,9 @@ feature_2to10 = processor.run_all()
 feature_2to10 = feature_2to10[:9]
 
 # MODEL TRAIN*************************************************
-# models = ["svc", "qsvc", "cc", "qc", "qcc", "cpca", "qpca", "qpca_rbf"]
+models = ["qsvc","svc"]#, "cc", "qc", "qcc", "cpca", "qpca", "qpca_rbf"]
 
-models = ["cc", "qc", "cpca", "qpca", "qpca_rbf"]
+# models = ["cc", "qc", "cpca", "qpca", "qpca_rbf"]
 
 for i in range(0,len(models)):
     evaluator_qc = create_evaluator(
