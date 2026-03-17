@@ -7,8 +7,8 @@ from preprocessing import MinimalDataProcessor
 from models import ModelEvaluator, create_evaluator
 
 # Load dataset
-# dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
-dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+dataset_path = "/Users/sthefaniepasso/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
+# dataset_path = "/home/ats852/.cache/kagglehub/datasets/saurabhshahane/classification-of-malwares/versions/1"
 
 files = os.listdir(dataset_path)
 csv_files = [f for f in files if f.endswith('.csv')]

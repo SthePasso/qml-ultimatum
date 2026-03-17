@@ -1,0 +1,10 @@
+{
+  "model_name": "SVC_QKERNEL_retrained",
+  "model_type": "svc_qkernel",
+  "n_clusters": 7,
+  "fold_idx": "6_retrained",
+  "score": 0.7374517374517374,
+  "saved_at": "2026-03-17T11:28:01.400273",
+  "model_file": "../results/models/svc_qkernel_7d/SVC_QKERNEL_retrained_fold_6_retrained.pkl",
+  "metadata_file": "../results/models/svc_qkernel_7d/SVC_QKERNEL_retrained_fold_6_retrained_metadata.json"
+}

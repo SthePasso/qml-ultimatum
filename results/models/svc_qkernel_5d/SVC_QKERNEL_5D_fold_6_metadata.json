@@ -1,0 +1,10 @@
+{
+  "model_name": "SVC_QKERNEL_5D",
+  "model_type": "svc_qkernel",
+  "n_clusters": 5,
+  "fold_idx": 6,
+  "score": 0.7162162162162162,
+  "saved_at": "2026-03-17T11:27:50.600757",
+  "model_file": "../results/models/svc_qkernel_5d/SVC_QKERNEL_5D_fold_6.pkl",
+  "metadata_file": "../results/models/svc_qkernel_5d/SVC_QKERNEL_5D_fold_6_metadata.json"
+}
