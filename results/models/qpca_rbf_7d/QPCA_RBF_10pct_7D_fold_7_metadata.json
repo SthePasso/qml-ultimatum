@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_RBF_10pct_7D",
+  "model_type": "qpca_rbf",
+  "n_clusters": 7,
+  "fold_idx": 7,
+  "score": 0.7019230769230769,
+  "saved_at": "2026-01-01T17:29:47.589360",
+  "model_file": "../results/models/qpca_rbf_7d/QPCA_RBF_10pct_7D_fold_7.pkl",
+  "metadata_file": "../results/models/qpca_rbf_7d/QPCA_RBF_10pct_7D_fold_7_metadata.json"
+}

@@ -3,8 +3,13 @@
   "model_type": "qpca_rbf",
   "n_clusters": 6,
   "fold_idx": 6,
+<<<<<<< HEAD
   "score": 0.7211538461538461,
   "saved_at": "2026-01-06T08:48:30.192349",
+=======
+  "score": 0.6346153846153846,
+  "saved_at": "2026-01-01T16:48:59.714070",
+>>>>>>> b276f7e (Models PCA update)
   "model_file": "../results/models/qpca_rbf_6d/QPCA_RBF_10pct_6D_fold_6.pkl",
   "metadata_file": "../results/models/qpca_rbf_6d/QPCA_RBF_10pct_6D_fold_6_metadata.json"
 }

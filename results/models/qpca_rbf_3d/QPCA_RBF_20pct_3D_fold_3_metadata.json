@@ -1,0 +1,10 @@
+{
+  "model_name": "QPCA_RBF_20pct_3D",
+  "model_type": "qpca_rbf",
+  "n_clusters": 3,
+  "fold_idx": 3,
+  "score": 0.645933014354067,
+  "saved_at": "2026-01-02T01:00:11.731215",
+  "model_file": "../results/models/qpca_rbf_3d/QPCA_RBF_20pct_3D_fold_3.pkl",
+  "metadata_file": "../results/models/qpca_rbf_3d/QPCA_RBF_20pct_3D_fold_3_metadata.json"
+}
